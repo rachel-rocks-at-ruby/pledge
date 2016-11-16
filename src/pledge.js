@@ -28,11 +28,11 @@ Deferral.prototype.reject = function(data) {
     this.$promise._value = data;
     this.$promise._state = 'rejected';
   }
-  this.$promise.callHandlers();  
+  this.$promise.callHandlers();
 }
 
 $Promise.prototype.then = function(successCb, errorCb) {
-  let promiseCbs = { 
+  let promiseCbs = {
     successCb: typeof successCb === 'function' ? successCb : 0,
     errorCb: typeof errorCb === 'function' ? errorCb : 0
   };
@@ -40,12 +40,19 @@ $Promise.prototype.then = function(successCb, errorCb) {
   if (this._state !== 'pending') this.callHandlers();
 }
 
+
+$Promise.prototype.catch = function (myFunc) {
+  this.then(null, myFunc);
+};
+
 $Promise.prototype.callHandlers = function (){
   while (this._handlerGroups.length){
     if (this._state === 'rejected') {
-      this._handlerGroups.shift().errorCb(this._value);
+      let cb = this._handlerGroups.shift();
+      if (cb.errorCb) {cb.errorCb(this._value)};
     } else if (this._state === 'fulfilled') {
-      this._handlerGroups.shift().successCb(this._value);
+      let cb = this._handlerGroups.shift();
+      if (cb.successCb) {cb.successCb(this._value)};
     }
   }
 }
