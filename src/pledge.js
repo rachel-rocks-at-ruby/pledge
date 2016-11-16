@@ -6,6 +6,7 @@ Promises Workshop: build the pledge.js deferral-style promise library
 let $Promise = function() {
   this._state = 'pending';
   this._value = {};
+  this._handlerGroups = [];
 }
 let Deferral = function() {
   this.$promise = new $Promise;
@@ -13,19 +14,41 @@ let Deferral = function() {
 let defer = function() {
   return new Deferral;
 }
+
 Deferral.prototype.resolve = function(data) {
   if (this.$promise._state === 'pending') {
     this.$promise._value = data;
     this.$promise._state = 'fulfilled';
   }
+  this.$promise.callHandlers();
 }
+
 Deferral.prototype.reject = function(data) {
   if (this.$promise._state === 'pending') {
     this.$promise._value = data;
     this.$promise._state = 'rejected';
   }
+  this.$promise.callHandlers();  
 }
 
+$Promise.prototype.then = function(successCb, errorCb) {
+  let promiseCbs = { 
+    successCb: typeof successCb === 'function' ? successCb : 0,
+    errorCb: typeof errorCb === 'function' ? errorCb : 0
+  };
+  this._handlerGroups.push(promiseCbs);
+  if (this._state !== 'pending') this.callHandlers();
+}
+
+$Promise.prototype.callHandlers = function (){
+  while (this._handlerGroups.length){
+    if (this._state === 'rejected') {
+      this._handlerGroups.shift().errorCb(this._value);
+    } else if (this._state === 'fulfilled') {
+      this._handlerGroups.shift().successCb(this._value);
+    }
+  }
+}
 
 /*-------------------------------------------------------
 The spec was designed to work with Test'Em, so we don't
